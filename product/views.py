@@ -23,6 +23,17 @@ def product_list(request):
     serializer = ProductSerializer(products, many=True)
     return Response({ "status": "success" , "data": serializer.data })
 
+@api_view(['GET'])
+def product_detail(request, id):
+    try:
+        product = Product.objects.get(pk=id)
+    except Product.DoesNotExist:
+        return Response(status=404)
+        
+    if request.method == 'GET':
+        serializer = ProductSerializer(product)
+        return Response({ "status": "success" , "data": serializer.data }, status=200)
+
 
 @api_view(['GET'])
 def type_product_list(request):

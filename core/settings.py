@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 
 from pathlib import Path
 from dotenv import load_dotenv
+from corsheaders.defaults import default_headers
 import os
 
 load_dotenv()
@@ -47,10 +48,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     'rest_framework',
     'corsheaders',
+    "phonenumber_field",
 
-    'product'
+
+    'product',
+    'account',
+    'user'
 ]
 
 MIDDLEWARE = [
@@ -61,7 +67,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware'
+    
+    'core.middleware.AuthMiddleware'
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -141,6 +148,8 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ORIGIN_ALLOW_ALL = True
+
+CORS_ALLOW_HEADERS = list(default_headers) + ['Set-Cookie'] + ['Cookie']
 
 CORS_ALLOW_METHODS = [
     "DELETE",
