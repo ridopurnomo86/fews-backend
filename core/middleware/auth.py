@@ -1,4 +1,3 @@
-from rest_framework.response import Response
 from django.http import JsonResponse
 from dotenv import load_dotenv
 import os

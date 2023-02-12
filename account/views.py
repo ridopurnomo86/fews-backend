@@ -2,12 +2,13 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .serializers import AccountRegisterSerializer, AccountLoginSerializer
 from .models import User
-from core.modules import generate_token
+from core.modules import Token
 from django.contrib.auth.hashers import make_password, check_password
 import json
 
 from dotenv import load_dotenv
 import os
+
 
 load_dotenv()
 NODE_ENV = os.getenv('DJANGO_NODE_ENV')
@@ -32,19 +33,19 @@ def account_login(request):
     body = json.loads(body_unicode)
     email = body['email']
     password = body['password']
-    validation_serializer = AccountLoginSerializer(data=request.data)
+    validation_serializer = AccountLoginSerializer(data=body)
 
     if validation_serializer.is_valid():
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            return Response({ "status": "error", "message": "User doesnt exist" }, status=404)
+            return Response({ "status": "error", "message": "User doesnt exist" }, status=400)
         
         serializer = AccountLoginSerializer(user)
         checking_password = check_password(password, serializer.data["password"])
 
         if checking_password:
-            token = generate_token({ "id": serializer.data["id"], "email": serializer.data["email"] })
+            token = Token({ "id": serializer.data["id"], "email": serializer.data["email"] }).generate_token()
             response = Response()
             response = Response({ "status": "success" , "message": "Success login", }, status=200)
             response.set_cookie(
@@ -57,7 +58,7 @@ def account_login(request):
             return response
         return Response({ "status": "error" , "message": "Wrong Password" }, status=400)
         
-    return Response({ "status": "error" , "message": json.dumps(serializer.errors) }, status=400)
+    return Response({ "status": "error" , "message": json.dumps(validation_serializer.errors) }, status=400)
 
 @api_view(["GET"])
 def account_logout(request):

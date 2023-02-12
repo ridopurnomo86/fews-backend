@@ -1,1 +1,1 @@
-from .generate_token import generate_token
+from .token import Token

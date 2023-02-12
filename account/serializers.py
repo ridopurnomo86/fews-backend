@@ -4,14 +4,18 @@ from .models import User
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = "__all__"
+        fields = ['id', 'full_name', 'email','is_email_verified', 'gender', 'birth_date', 'phone_number', 'created_at', 'updated_at']
 
 class AccountLoginSerializer(serializers.ModelSerializer):
+    email = serializers.CharField()
+    password = serializers.CharField()
+    
     class Meta:
         model = User
-        fields = ['id', 'email', 'password', 'last_login']
+        fields = ['id', 'email', 'password']
         extra_kwargs = {
             'email': { 'required': True, 'validators': [] },
+            'password': { 'required': True, 'validators': [] }
         }
 
 class AccountRegisterSerializer(serializers.ModelSerializer):
