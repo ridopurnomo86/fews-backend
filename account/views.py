@@ -1,13 +1,16 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .serializers import AccountRegisterSerializer, AccountLoginSerializer
-from .models import User
+from user.models import User
 from core.modules import Token
 from django.contrib.auth.hashers import make_password, check_password
-import json
+from django.utils import timezone
 
+import json
+import datetime
 from dotenv import load_dotenv
 import os
+
 
 
 load_dotenv()
@@ -38,6 +41,7 @@ def account_login(request):
     if validation_serializer.is_valid():
         try:
             user = User.objects.get(email=email)
+            User.objects.filter(email=email).update(last_login=timezone.now())
         except User.DoesNotExist:
             return Response({ "status": "error", "message": "User doesnt exist" }, status=400)
         
@@ -46,6 +50,7 @@ def account_login(request):
 
         if checking_password:
             token = Token({ "id": serializer.data["id"], "email": serializer.data["email"] }).generate_token()
+
             response = Response()
             response = Response({ "status": "success" , "message": "Success login", }, status=200)
             response.set_cookie(
