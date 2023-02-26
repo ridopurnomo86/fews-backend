@@ -2,6 +2,9 @@ from rest_framework import serializers
 from .models import Product, CategoryProduct, TypeProduct
 
 class ProductSerializer(serializers.ModelSerializer):
+    type = serializers.CharField(source="type.name")
+    category = serializers.CharField(source="category.name")
+
     class Meta:
         model = Product
         fields = [ 
@@ -11,8 +14,8 @@ class ProductSerializer(serializers.ModelSerializer):
             "description", 
             "image_url", 
             "stock", 
-            "category_id", 
-            "type_id", 
+            "category", 
+            "type", 
             "created_at", 
             "updated_at"
         ]

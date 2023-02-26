@@ -14,7 +14,7 @@ def product_list(request):
         serializer = ProductSerializer(products, many=True)
         return Response({ "status": "success" , "data": serializer.data })
 
-    if (category_id != '' and type_id is not None):
+    if (category_id != '' and category_id is not None):
         products = Product.objects.filter(category_id=category_id)
         serializer = ProductSerializer(products, many=True)
         return Response({ "status": "success" , "data": serializer.data })

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User
+from user.models import User
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -12,10 +12,11 @@ class AccountLoginSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['id', 'email', 'password']
+        fields = ['id', 'email', 'password', 'last_login']
         extra_kwargs = {
             'email': { 'required': True, 'validators': [] },
-            'password': { 'required': True, 'validators': [] }
+            'password': { 'required': True, 'validators': [] },
+            'last_login': { 'required': False, 'validators': [] },
         }
 
 class AccountRegisterSerializer(serializers.ModelSerializer):

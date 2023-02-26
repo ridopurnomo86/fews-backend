@@ -3,10 +3,9 @@ from rest_framework.response import Response
 from core.middleware import AuthMiddleware
 from django.utils.decorators import decorator_from_middleware
 from core.modules import Token
-from account.models import User
 from account.serializers import UserSerializer
+from .models import User, UserAddress
 from .serializers import UserAddressSerializer
-from .models import UserAddress
 
 from dotenv import load_dotenv
 import os
@@ -30,7 +29,7 @@ def user_profile(request):
     return Response({ 'status': 'error', 'message': 'Something gone wrong' }, status=400)
 
 @decorator_from_middleware(AuthMiddleware)
-@api_view(['POST', "GET", "DELETE"])
+@api_view(['POST', "GET"])
 def user_profile_address(request):
     token = request.COOKIES.get(USER_COOKIE_NAME)
     user_id = Token(token).decode_token()["id"]
