@@ -23,10 +23,10 @@ def user_profile(request):
         try:
             user = User.objects.get(id=user_id)
             serializer = UserSerializer(user)
-            return Response({ 'status': 'success', 'data': serializer.data }, status=200)
+            return Response({ 'status': 'success', 'type': "success", 'data': serializer.data }, status=200)
         except User.DoesNotExist:
-            return Response({ 'status': 'error', 'message': 'User doesnt exist' }, status=400)
-    return Response({ 'status': 'error', 'message': 'Something gone wrong' }, status=400)
+            return Response({ 'status': 'error', 'type': "success", 'message': 'User doesnt exist' }, status=400)
+    return Response({ 'status': 'error', 'type': "error", 'message': 'Something gone wrong' }, status=400)
 
 @decorator_from_middleware(AuthMiddleware)
 @api_view(['POST', "GET"])
@@ -38,19 +38,19 @@ def user_profile_address(request):
         serializer = UserAddressSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(user_id=user_id)
-            return Response({ 'status': 'success', 'message': 'Successed add address' }, status=200)
-        return Response({ "status": "error" , "message": json.dumps(serializer.errors) }, status=400)
+            return Response({ 'status': 'success', 'type': 'success', 'message': 'Successed add address' }, status=200)
+        return Response({ "status": "error" , 'type': 'error', "message": json.dumps(serializer.errors) }, status=400)
     
     if request.method == "GET":
         try:
             user_address = UserAddress.objects.filter(user_id=user_id)
         except UserAddress.DoesNotExist:
-            return Response({ "status": "error", "message": "User address doesnt exist" }, status=400)
+            return Response({ "status": "error", 'type': 'error', "message": "User address doesnt exist" }, status=400)
         
         serializer = UserAddressSerializer(user_address, many=True)
         if len(serializer.data) > 0:
-            return Response({ "status": "success", "data": serializer.data }, status=200)
-        return Response({ "status": "success", "message": "No user address", "data": serializer.data }, status=200)
+            return Response({ "status": "success", 'type': 'success', "data": serializer.data }, status=200)
+        return Response({ "status": "success", 'type': 'success', "message": "No user address", "data": serializer.data }, status=200)
     
 @decorator_from_middleware(AuthMiddleware)
 @api_view(["DELETE"])
@@ -61,7 +61,7 @@ def delete_user_profile_address(request, id):
         user_address = UserAddress.objects.filter(user_id=user_id, id=id)
         if user_address:
             user_address.delete()
-            return Response({ "status": "success", "message": "Success delete address" }, status=200)
-        return Response({ "status": "error" , "message": "Address not exist" }, status=400)
+            return Response({ "status": "success", 'type': 'success', "message": "Success delete address" }, status=200)
+        return Response({ "status": "error" , 'type': 'error', "message": "Address not exist" }, status=400)
     except UserAddress.DoesNotExist:
-        return Response({ "status": "error", "message": "User address doesnt exist" }, status=400)
+        return Response({ "status": "error", 'type': 'error', "message": "User address doesnt exist" }, status=400)

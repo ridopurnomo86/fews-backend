@@ -11,8 +11,6 @@ import datetime
 from dotenv import load_dotenv
 import os
 
-
-
 load_dotenv()
 NODE_ENV = os.getenv('DJANGO_NODE_ENV')
 USER_COOKIE_NAME = os.getenv('DJANGO_USER_COOKIE_NAME')
@@ -43,35 +41,39 @@ def account_login(request):
             user = User.objects.get(email=email)
             User.objects.filter(email=email).update(last_login=timezone.now())
         except User.DoesNotExist:
-            return Response({ "status": "error", "message": "User doesnt exist" }, status=400)
+            return Response({ "status": "error", 'type': "error", "message": "User doesnt exist" }, status=400)
         
         serializer = AccountLoginSerializer(user)
         checking_password = check_password(password, serializer.data["password"])
 
         if checking_password:
-            token = Token({ "id": serializer.data["id"], "email": serializer.data["email"] }).generate_token()
-
+            max_age = 18000 # 5 hours
+            duration = datetime.datetime.utcnow() + datetime.timedelta(seconds=max_age)
             response = Response()
-            response = Response({ "status": "success" , "message": "Success login", }, status=200)
+            token = Token({ 
+                "id": serializer.data["id"], 
+                'exp': duration,
+                'iat': datetime.datetime.utcnow() 
+            }).generate_token()
+            response = Response({ "status": "success" , 'type': "success", "message": "Success login", }, status=200)
             response.set_cookie(
                 key=USER_COOKIE_NAME, 
                 value=token, 
-                max_age=18000000, # 8 Hours
+                max_age=max_age,
                 secure=NODE_ENV == 'production',
 				samesite="Strict" if NODE_ENV == 'production' else "Lax",
                 httponly=True)
             return response
-        return Response({ "status": "error" , "message": "Wrong Password" }, status=400)
-        
-    return Response({ "status": "error" , "message": json.dumps(validation_serializer.errors) }, status=400)
+        return Response({ "status": "error" , 'type': "error", "message": "Wrong Password" }, status=400)
+    return Response({ "status": "error", 'type': "error", "message": json.dumps(validation_serializer.errors) }, status=400)
 
 @api_view(["GET"])
 def account_logout(request):
     cookies = request.COOKIES.get(USER_COOKIE_NAME)
     if cookies is not None:
         response = Response()
-        response = Response({ "status": "success", "message": "Success Logout" }, status=200)
+        response = Response({ "status": "success", 'type': "success", "message": "Success Logout" }, status=200)
         response.set_cookie(key=USER_COOKIE_NAME, value="", max_age=0, expires=None)
         return response
-    return Response({ "status": "error" , "message": "Something gone wrong" }, status=400)
+    return Response({ "status": "error" , 'type': "error", "message": "Something gone wrong" }, status=400)
     

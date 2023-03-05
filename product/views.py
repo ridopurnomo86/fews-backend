@@ -12,16 +12,16 @@ def product_list(request):
     if (type_id != '' and type_id is not None):
         products = Product.objects.filter(type_id=type_id)
         serializer = ProductSerializer(products, many=True)
-        return Response({ "status": "success" , "data": serializer.data })
+        return Response({ "status": "success", "type": "success", "data": serializer.data })
 
     if (category_id != '' and category_id is not None):
         products = Product.objects.filter(category_id=category_id)
         serializer = ProductSerializer(products, many=True)
-        return Response({ "status": "success" , "data": serializer.data })
+        return Response({ "status": "success", "type": "success", "data": serializer.data })
 
     products = Product.objects.all()
     serializer = ProductSerializer(products, many=True)
-    return Response({ "status": "success" , "data": serializer.data })
+    return Response({ "status": "success" , "type": "success", "data": serializer.data })
 
 @api_view(['GET'])
 def product_detail(request, id):
@@ -32,17 +32,17 @@ def product_detail(request, id):
         
     if request.method == 'GET':
         serializer = ProductSerializer(product)
-        return Response({ "status": "success" , "data": serializer.data }, status=200)
+        return Response({ "status": "success", "type": "success", "data": serializer.data }, status=200)
 
 
 @api_view(['GET'])
 def type_product_list(request):
     type_product = TypeProduct.objects.all()
     serializer = TypeProductSerializer(type_product, many=True)
-    return Response({ "status": "success" , "data": serializer.data })
+    return Response({ "status": "success", "type": "success", "data": serializer.data })
 
 @api_view(['GET'])
 def category_product_list(request):
     category_product = CategoryProduct.objects.all()
     serializer = CategoryProductSerializer(category_product, many=True)
-    return Response({ "status": "success" , "data": serializer.data })
+    return Response({ "status": "success", "type": "success", "data": serializer.data })
