@@ -55,7 +55,11 @@ def account_login(request):
                 'exp': duration,
                 'iat': datetime.datetime.utcnow() 
             }).generate_token()
-            response = Response({ "status": "success" , 'type': "success", "message": "Success login", }, status=200)
+            access_token = Token({
+                'exp': duration,
+                'iat': datetime.datetime.utcnow() 
+            }).generate_token()
+            response = Response({ "status": "success" , 'type': "success", "data": { "access_token" : access_token }, "message": "Success login", }, status=200)
             response.set_cookie(
                 key=USER_COOKIE_NAME, 
                 value=token, 
