@@ -147,6 +147,8 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOW_CREDENTIALS = True
 
+CSRF_TRUSTED_ORIGINS = ["http://localhost:9909"]
+
 CORS_ALLOW_HEADERS = list(default_headers) + ['Set-Cookie'] + ['Cookie']
 
 CORS_ALLOW_METHODS = [
@@ -155,6 +157,7 @@ CORS_ALLOW_METHODS = [
     "POST",
     "PUT",
 ]
+
 
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [

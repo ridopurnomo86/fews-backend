@@ -25,8 +25,8 @@ def create_account(request):
     if serializer.is_valid():
         hash_password = make_password(password)
         serializer.save(password=hash_password)
-        return Response({'status': 'success', 'message': 'Register Successfully'}, status=200)
-    return Response(data={ "status": "error" , "message": json.dumps(serializer.errors) }, status=400)
+        return Response({'status': 'success', "type": 'success', 'message': 'Register Successfully'}, status=200)
+    return Response(data={ "status": "error" , "type": "error", "message": json.dumps(serializer.errors) }, status=400)
 
 @api_view(['POST'])
 def account_login(request):
