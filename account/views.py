@@ -10,6 +10,8 @@ import json
 import datetime
 from dotenv import load_dotenv
 import os
+import requests
+import uuid
 
 load_dotenv()
 NODE_ENV = os.getenv('DJANGO_NODE_ENV')
@@ -71,7 +73,7 @@ def account_login(request):
         return Response({ "status": "error" , 'type': "error", "message": "Wrong Password" }, status=400)
     return Response({ "status": "error", 'type': "error", "message": json.dumps(validation_serializer.errors) }, status=400)
 
-@api_view(["GET"])
+@api_view(["POST"])
 def account_logout(request):
     cookies = request.COOKIES.get(USER_COOKIE_NAME)
     if cookies is not None:
@@ -80,4 +82,22 @@ def account_logout(request):
         response.set_cookie(key=USER_COOKIE_NAME, value="", max_age=0, expires=None)
         return response
     return Response({ "status": "error" , 'type': "error", "message": "Something gone wrong" }, status=400)
+    
+@api_view(["POST"])
+def account_login_google(request):
+    body_unicode = request.body.decode('utf-8')
+    body = json.loads(body_unicode)
+    token = body['token']
+    google_user_info = requests.get('https://www.googleapis.com/oauth2/v2/userinfo', params={ "access_token": token }).json()
+    print(google_user_info)
+
+    if (google_user_info is None or google_user_info.get("error") or len(token) == 0):
+        return Response({ "status": "error" , 'type': "error", "message": "Token not valid" }, status=400)
+
+    try:
+        user = User.objects.get(email=google_user_info["email"])
+        response = Response({ "status": "success", 'type': "success", "message": "success" , "data": google_user_info }, status=200)
+        return response
+    except User.DoesNotExist:
+        return Response({ "status": "error" , 'type': "error", "message": "Something Gone Wrong" }, status=400)
     
