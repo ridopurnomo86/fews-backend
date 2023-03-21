@@ -4,7 +4,7 @@ from user.models import User
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'full_name', 'email','is_email_verified', 'gender', 'birth_date', 'phone_number', 'created_at', 'updated_at']
+        fields = ['id', 'full_name', 'email','is_email_verified', 'is_google_provider', 'gender', 'birth_date', 'phone_number', 'created_at', 'updated_at']
 
 class AccountLoginSerializer(serializers.ModelSerializer):
     email = serializers.CharField()
@@ -25,4 +25,14 @@ class AccountRegisterSerializer(serializers.ModelSerializer):
         fields = ['id', 'full_name', 'email','is_email_verified', 'gender', 'birth_date', 'phone_number', 'password', 'created_at', 'updated_at']
         extra_kwargs = {
             'password': { 'write_only': True }
+        }
+
+class SetPasswordAccountLogin(serializers.ModelSerializer):
+    password = serializers.CharField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'password']
+        extra_kwargs = {
+            'password': { 'required': True, 'validators': [] },
         }

@@ -1,6 +1,6 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .serializers import AccountRegisterSerializer, AccountLoginSerializer
+from .serializers import AccountRegisterSerializer, UserSerializer, AccountLoginSerializer, SetPasswordAccountLogin
 from user.models import User
 from core.modules import Token
 from django.contrib.auth.hashers import make_password, check_password
@@ -11,11 +11,11 @@ import datetime
 from dotenv import load_dotenv
 import os
 import requests
-import uuid
 
 load_dotenv()
 NODE_ENV = os.getenv('DJANGO_NODE_ENV')
 USER_COOKIE_NAME = os.getenv('DJANGO_USER_COOKIE_NAME')
+USER_GOOGLE_COOKIE = os.getenv('DJANGO_USER_GOOGLE_COOKIE')
 
 @api_view(["POST"])
 def create_account(request):
@@ -89,15 +89,70 @@ def account_login_google(request):
     body = json.loads(body_unicode)
     token = body['token']
     google_user_info = requests.get('https://www.googleapis.com/oauth2/v2/userinfo', params={ "access_token": token }).json()
-    print(google_user_info)
 
     if (google_user_info is None or google_user_info.get("error") or len(token) == 0):
         return Response({ "status": "error" , 'type': "error", "message": "Token not valid" }, status=400)
 
     try:
-        user = User.objects.get(email=google_user_info["email"])
-        response = Response({ "status": "success", 'type': "success", "message": "success" , "data": google_user_info }, status=200)
+        user = User.objects.get(email=google_user_info["email"], is_google_provider=1)
+        serializer = UserSerializer(user)
+        max_age = 18000 # 5 hours
+        duration = datetime.datetime.utcnow() + datetime.timedelta(seconds=max_age)
+        response = Response()
+        token = Token({ 
+            "id": serializer.data["id"], 
+            'exp': duration,
+            'iat': datetime.datetime.utcnow() 
+        }).generate_token()
+        access_token = Token({
+            'exp': duration,
+            'iat': datetime.datetime.utcnow() 
+        }).generate_token()
+        response = Response({ "status": "success" , 'type': "success", "data": { "access_token" : access_token }, "message": "Success login", }, status=200)
+        response.set_cookie(
+            key=USER_COOKIE_NAME, 
+            value=token, 
+            max_age=max_age,
+            secure=NODE_ENV == 'production',
+			samesite="Strict" if NODE_ENV == 'production' else "Lax",
+            httponly=True)
         return response
     except User.DoesNotExist:
-        return Response({ "status": "error" , 'type': "error", "message": "Something Gone Wrong" }, status=400)
+        google_token = Token({
+            "full_name": google_user_info["name"],
+            "email": google_user_info["email"],
+        }).generate_token()
+        response = Response()
+        response = Response({ "status": "success" , 'type': "success", "message": "success", "code": 'user_not_exist' }, status=200)
+        response.set_cookie(
+            key="google_credential", 
+            value=google_token, 
+            max_age=3599,
+            secure=NODE_ENV == 'production',
+			samesite="Strict" if NODE_ENV == 'production' else "Lax",
+            httponly=True)
+        return response
     
+@api_view(["POST"])
+def set_password_account_google(request):
+    body_unicode = request.body.decode('utf-8')
+    body = json.loads(body_unicode)
+    password = body['password']
+    token = request.COOKIES.get(USER_GOOGLE_COOKIE)
+    decode_token = Token(token).decode_token()
+
+    validation_serializer = SetPasswordAccountLogin(data=body)
+    
+    if validation_serializer.is_valid():
+        hash_password = make_password(password)
+        try: 
+            user = User.objects.create(
+                full_name=decode_token["full_name"], 
+                email=decode_token["email"], 
+                is_google_provider=1,
+                password=hash_password)
+            user.save()
+            return Response({ "status": "success", 'type': "success", "message": "Success Register Account Google" }, status=200)
+        except:
+            return Response({ "status": "error" , "type": "error", "message": "Something gone wrong" }, status=400)
+    return Response({ "status": "error" , "type": "error", "message": json.dumps(validation_serializer.errors) }, status=400)
