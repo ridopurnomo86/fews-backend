@@ -95,6 +95,7 @@ def account_login_google(request):
 
     try:
         user = User.objects.get(email=google_user_info["email"], is_google_provider=1)
+        User.objects.filter(email=google_user_info["email"]).update(last_login=timezone.now())
         serializer = UserSerializer(user)
         max_age = 18000 # 5 hours
         duration = datetime.datetime.utcnow() + datetime.timedelta(seconds=max_age)
@@ -146,13 +147,16 @@ def set_password_account_google(request):
     if validation_serializer.is_valid():
         hash_password = make_password(password)
         try: 
+            response = Response()
+            response = Response({ "status": "success", 'type': "success", "message": "Success Register Account Google" }, status=200)
             user = User.objects.create(
                 full_name=decode_token["full_name"], 
                 email=decode_token["email"], 
                 is_google_provider=1,
                 password=hash_password)
             user.save()
-            return Response({ "status": "success", 'type': "success", "message": "Success Register Account Google" }, status=200)
+            response.set_cookie(key=USER_GOOGLE_COOKIE, value="", max_age=0, expires=None)
+            return response
         except:
             return Response({ "status": "error" , "type": "error", "message": "Something gone wrong" }, status=400)
     return Response({ "status": "error" , "type": "error", "message": json.dumps(validation_serializer.errors) }, status=400)
