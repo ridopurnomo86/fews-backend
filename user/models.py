@@ -13,6 +13,7 @@ class User(models.Model):
     password = models.CharField(blank=False, validators=[MinLengthValidator(8)], max_length=255)
     email = models.EmailField(blank=False, max_length=100, unique=True)
     is_email_verified = models.IntegerField(default=0)
+    is_email_provider = models.IntegerField(default=0)
     is_google_provider = models.IntegerField(default=0)
     gender = models.CharField(blank=False, max_length=5, choices=GENDER_CHOICES, null=True)
     birth_date = models.DateTimeField(blank=True, null=True)

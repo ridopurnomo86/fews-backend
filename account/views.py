@@ -26,7 +26,7 @@ def create_account(request):
 
     if serializer.is_valid():
         hash_password = make_password(password)
-        serializer.save(password=hash_password)
+        serializer.save(password=hash_password, is_email_provider=1)
         return Response({'status': 'success', "type": 'success', 'message': 'Register Successfully'}, status=200)
     return Response(data={ "status": "error" , "type": "error", "message": json.dumps(serializer.errors) }, status=400)
 
@@ -40,7 +40,7 @@ def account_login(request):
 
     if validation_serializer.is_valid():
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.get(email=email, is_email_provider=1)
             User.objects.filter(email=email).update(last_login=timezone.now())
         except User.DoesNotExist:
             return Response({ "status": "error", 'type': "error", "message": "User doesnt exist" }, status=400)
@@ -94,39 +94,42 @@ def account_login_google(request):
         return Response({ "status": "error" , 'type': "error", "message": "Token not valid" }, status=400)
 
     try:
-        user = User.objects.get(email=google_user_info["email"], is_google_provider=1)
+        user = User.objects.get(email=google_user_info["email"])
         User.objects.filter(email=google_user_info["email"]).update(last_login=timezone.now())
         serializer = UserSerializer(user)
         max_age = 18000 # 5 hours
         duration = datetime.datetime.utcnow() + datetime.timedelta(seconds=max_age)
-        response = Response()
-        token = Token({ 
-            "id": serializer.data["id"], 
-            'exp': duration,
-            'iat': datetime.datetime.utcnow() 
-        }).generate_token()
-        access_token = Token({
-            'exp': duration,
-            'iat': datetime.datetime.utcnow() 
-        }).generate_token()
-        response = Response({ "status": "success" , 'type': "success", "data": { "access_token" : access_token }, "message": "Success login", }, status=200)
-        response.set_cookie(
-            key=USER_COOKIE_NAME, 
-            value=token, 
-            max_age=max_age,
-            secure=NODE_ENV == 'production',
-			samesite="Strict" if NODE_ENV == 'production' else "Lax",
-            httponly=True)
-        return response
+        access_token = Token({ 'exp': duration, 'iat': datetime.datetime.utcnow() }).generate_token()
+
+        if (serializer.data["is_google_provider"] == 1 and serializer.data["is_email_provider"] == 1):
+            token = Token({ "id": serializer.data["id"], 'exp': duration, 'iat': datetime.datetime.utcnow() }).generate_token()
+            response = Response({ "status": "success" , 'type': "success", "data": { "access_token" : access_token }, "message": "Success login", }, status=200)
+            response.set_cookie(
+                key=USER_COOKIE_NAME, 
+                value=token, 
+                max_age=max_age,
+                secure=NODE_ENV == 'production',
+			    samesite="Strict" if NODE_ENV == 'production' else "Lax",
+                httponly=True)
+            return response
+    
+        if (serializer.data["is_email_provider"] == 1 and serializer.data["is_google_provider"] == 0):
+            google_token = Token({ "full_name": google_user_info["name"], "email": google_user_info["email"] }).generate_token()
+            response = Response({ "status": "success" , 'type': "success", "code": "user_password_confirm", "message": "Success", }, status=200)
+            response.set_cookie(
+                key=USER_GOOGLE_COOKIE, 
+                value=google_token, 
+                max_age=3599,
+                secure=NODE_ENV == 'production',
+		    	samesite="Strict" if NODE_ENV == 'production' else "Lax",
+                httponly=True)
+            return response
+    
     except User.DoesNotExist:
-        google_token = Token({
-            "full_name": google_user_info["name"],
-            "email": google_user_info["email"],
-        }).generate_token()
-        response = Response()
+        google_token = Token({ "full_name": google_user_info["name"], "email": google_user_info["email"] }).generate_token()
         response = Response({ "status": "success" , 'type': "success", "message": "success", "code": 'user_not_exist' }, status=200)
         response.set_cookie(
-            key="google_credential", 
+            key=USER_GOOGLE_COOKIE, 
             value=google_token, 
             max_age=3599,
             secure=NODE_ENV == 'production',
@@ -153,10 +156,56 @@ def set_password_account_google(request):
                 full_name=decode_token["full_name"], 
                 email=decode_token["email"], 
                 is_google_provider=1,
+                is_email_provider=1,
                 password=hash_password)
             user.save()
             response.set_cookie(key=USER_GOOGLE_COOKIE, value="", max_age=0, expires=None)
             return response
         except:
             return Response({ "status": "error" , "type": "error", "message": "Something gone wrong" }, status=400)
+    return Response({ "status": "error" , "type": "error", "message": json.dumps(validation_serializer.errors) }, status=400)
+
+@api_view(["POST"])
+def set_email_account_google(request):
+    body_unicode = request.body.decode('utf-8')
+    body = json.loads(body_unicode)
+    password = body['password']
+    token = request.COOKIES.get(USER_GOOGLE_COOKIE)
+    decode_token = Token(token).decode_token()
+    max_age = 18000 # 5 hours
+    duration = datetime.datetime.utcnow() + datetime.timedelta(seconds=max_age)
+
+    validation_serializer = SetPasswordAccountLogin(data=body)
+
+    if validation_serializer.is_valid():
+        try: 
+            user = User.objects.get(email=decode_token["email"])
+            User.objects.filter(email=decode_token["email"]).update(last_login=timezone.now(), is_google_provider=1)
+        except User.DoesNotExist:
+            return Response({ "status": "error" , "type": "error", "message": "User doesnt exist" }, status=400)
+    
+        serializer = AccountLoginSerializer(user)
+        checking_password = check_password(password, serializer.data["password"])
+
+        if checking_password:
+            token = Token({ 
+                "id": serializer.data["id"], 
+                'exp': duration,
+                'iat': datetime.datetime.utcnow() 
+            }).generate_token()
+            access_token = Token({
+                'exp': duration,
+                'iat': datetime.datetime.utcnow() 
+            }).generate_token()
+            response = Response({ "status": "success" , 'type': "success", "data": { "access_token" : access_token }, "message": "Success login", }, status=200)
+            response.set_cookie(key=USER_GOOGLE_COOKIE, value="", max_age=0, expires=None)
+            response.set_cookie(
+                key=USER_COOKIE_NAME, 
+                value=token, 
+                max_age=max_age,
+                secure=NODE_ENV == 'production',
+				samesite="Strict" if NODE_ENV == 'production' else "Lax",
+                httponly=True)
+            return response
+        return Response({ "status": "error" , 'type': "error", "message": "Wrong Password" }, status=400)
     return Response({ "status": "error" , "type": "error", "message": json.dumps(validation_serializer.errors) }, status=400)
