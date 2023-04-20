@@ -22,6 +22,7 @@ DATABASE_NAME = os.getenv('DJANGO_DATABASE_NAME')
 DATABASE_USER = os.getenv('DJANGO_DATABASE_USER')
 DATABASE_PASSWORD = os.getenv('DJANGO_DATABASE_PASSWORD')
 DATABASE_PORT = os.getenv('DJANGO_DATABASE_PORT')
+REDIS_CONNECTION = os.getenv('DJANGO_REDIS_CONNECTION')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -101,6 +102,17 @@ DATABASES = {
         'PASSWORD': DATABASE_PASSWORD,
         'HOST': DATABASE_HOST,
         'PORT': DATABASE_PORT
+    }
+}
+
+# Cache
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_CONNECTION,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
     }
 }
 
