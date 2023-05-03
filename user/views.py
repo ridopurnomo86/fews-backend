@@ -6,6 +6,8 @@ from core.modules import Token
 from account.serializers import UserSerializer
 from .models import User, UserAddress
 from .serializers import UserAddressSerializer
+from django.core.cache import cache
+from django.views.decorators.cache import cache_control
 
 from dotenv import load_dotenv
 import os
@@ -29,6 +31,7 @@ def user_profile(request):
     return Response({ 'status': 'error', 'type': "error", 'message': 'Something gone wrong' }, status=400)
 
 @decorator_from_middleware(AuthMiddleware)
+@cache_control(max_age=600)
 @api_view(['POST', "GET"])
 def user_profile_address(request):
     token = request.COOKIES.get(USER_COOKIE_NAME)
@@ -42,13 +45,17 @@ def user_profile_address(request):
         return Response({ "status": "error" , 'type': 'error', "message": json.dumps(serializer.errors) }, status=400)
     
     if request.method == "GET":
+        if (cache.get('user_addresses')):
+            user_address = cache.get('user_addresses')
+            serializer = UserAddressSerializer(user_address, many=True)
+            return Response({ "status": "success", 'type': 'success', "data": serializer.data }, status=200)
         try:
             user_address = UserAddress.objects.filter(user_id=user_id)
         except UserAddress.DoesNotExist:
             return Response({ "status": "error", 'type': 'error', "message": "User address doesnt exist" }, status=400)
-        
         serializer = UserAddressSerializer(user_address, many=True)
         if len(serializer.data) > 0:
+            cache.set('user_addresses', user_address)
             return Response({ "status": "success", 'type': 'success', "data": serializer.data }, status=200)
         return Response({ "status": "success", 'type': 'success', "message": "No user address", "data": serializer.data }, status=200)
     
