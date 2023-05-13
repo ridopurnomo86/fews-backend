@@ -25,6 +25,7 @@ class User(models.Model):
 
 class UserAddress(models.Model):
     id = models.AutoField(primary_key=True, auto_created=True)
+    full_name = models.CharField(blank=False, max_length=200, null=True)
     address_name = models.CharField(blank=False, max_length=200, unique=True, null=True)
     country = CountryField()
     city = models.CharField(blank=False, max_length=200, null=True)

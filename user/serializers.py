@@ -8,6 +8,7 @@ class UserAddressSerializer(serializers.ModelSerializer):
             'id', 
             'address_name', 
             'country', 
+            'full_name',
             'city', 
             'state', 
             'address_type', 
